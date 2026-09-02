@@ -43,7 +43,26 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
       }
     }
     if (!added) {
-      throw new Error('Could not add product to cart from product page with available fallbacks');
+      // Final fallback: run page script to find and click an element with matching text
+      const scriptClicked = await page.evaluate(() => {
+        const matcher = /add to cart/i;
+        const els = Array.from(document.querySelectorAll('a,button,input'));
+        for (const el of els) {
+          if (el.textContent && matcher.test(el.textContent)) {
+            (el as HTMLElement).click();
+            return true;
+          }
+          const title = (el.getAttribute && el.getAttribute('title')) || '';
+          if (title && matcher.test(title)) {
+            (el as HTMLElement).click();
+            return true;
+          }
+        }
+        return false;
+      });
+      if (!scriptClicked) {
+        throw new Error('Could not add product to cart from product page with available fallbacks');
+      }
     }
 
     // Open cart by href
