@@ -17,11 +17,16 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
       const productAdd = page.locator('button:has-text("Add to cart"), input[value="Add to cart"]').first();
       await expect(productAdd).toBeVisible({ timeout: 10000 });
       await productAdd.click();
+      // debug snapshot after add
+      console.log('DEBUG after add, url=', await page.url());
+      console.log('DEBUG after add, body snippet=', (await page.evaluate(() => document.body && document.body.innerText && document.body.innerText.slice(0,400))) || '');
     } else {
       // Fallback: click first listing Add to cart
       const addBtn = page.locator('text=Add to cart').first();
       await expect(addBtn).toBeVisible({ timeout: 10000 });
       await addBtn.click();
+      console.log('DEBUG after list add, url=', await page.url());
+      console.log('DEBUG after list add, body snippet=', (await page.evaluate(() => document.body && document.body.innerText && document.body.innerText.slice(0,400))) || '');
     }
     // Wait briefly for add-to-cart to process
     await page.waitForTimeout(1000);
