@@ -1,81 +1,34 @@
+import path from 'path';
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'https://demowebshop.tricentis.com/';
+// Run full guest checkout against local demo by default
+const DEMO_URL = process.env.BASE_URL || 'http://localhost:3000';
 
-// Demowebshop guest checkout flow
-test('guest checkout full flow', async ({ page }, testInfo) => {
-  // Helper: capture screenshot on failure
-  testInfo.attachments = testInfo.attachments || [];
-  try {
-    // Navigate to books category and add the first book to cart
-    await page.goto(`${BASE_URL.replace(/\/$/, '')}/books`);
-    await expect(page).toHaveURL(/\/books/);
-    // Open first product detail and click its add-to-cart on the product page
-    const firstProduct = page.locator('h2.product-title a').first();
-    if (await firstProduct.count() > 0) {
-      await firstProduct.click();
-      // Attempt Ajax-based add-to-cart by extracting product id from add-to-cart input and calling site's AjaxCart
-      const addInputSelector = 'input[id^="add-to-cart-button"]';
-      await page.waitForSelector(addInputSelector, { timeout: 3000 }).catch(() => {});
-      if (await page.locator(addInputSelector).count() > 0) {
-        const addInput = page.locator(addInputSelector).first();
-        const addId = await addInput.getAttribute('id');
-        // id format: add-to-cart-button-<productId>
-        const m = addId ? addId.match(/add-to-cart-button-(\d+)/) : null;
-        if (m && m[1]) {
-          const pid = m[1];
-          // call the site's AjaxCart function from page context
-          await page.evaluate((p) => {
-            try {
-              const url = `/addproducttocart/details/${p}/1`;
-              if ((window as any).AjaxCart && (window as any).AjaxCart.addproducttocart_details) {
-                (window as any).AjaxCart.addproducttocart_details(url, '#product-details-form');
-              } else if ((window as any).AjaxCart && (window as any).AjaxCart.addproducttocart_catalog) {
-                (window as any).AjaxCart.addproducttocart_catalog(url);
-              } else {
-                // fallback to clicking the input
-                const input = document.getElementById(`add-to-cart-button-${p}`) as HTMLElement | null;
-                if (input) input.click();
-              }
-            } catch (e) {
-              // ignore
-            }
-          }, pid);
-          // give AJAX a moment
-          await page.waitForTimeout(1000);
-        } else {
-          // fallback if id not found
-          await addInput.click();
-        }
-      } else {
-        const productAdd = page.locator('button:has-text("Add to cart"), input[value="Add to cart"]').first();
-        await expect(productAdd).toBeVisible({ timeout: 10000 });
-        await productAdd.click();
-      }
-    } else {
-      // Fallback: click first listing Add to cart
-      const addBtn = page.locator('text=Add to cart').first();
-      await expect(addBtn).toBeVisible({ timeout: 10000 });
-      await addBtn.click();
-    }
-    // Wait briefly for add-to-cart to process
-    await page.waitForTimeout(1000);
-
-    // Wait a moment for add-to-cart AJAX to complete, then navigate to the cart page
-    await page.waitForTimeout(1000);
-    const cartUrl = `${BASE_URL.replace(/\/$/, '')}/cart`;
-    await page.goto(cartUrl);
-    await expect(page.getByRole('heading', { name: /shopping cart/i })).toBeVisible({ timeout: 10000 });
-
-    // Instead of full checkout (flaky on public demo), assert product appears in cart
-    // The cart page shows "Your Shopping Cart is empty!" when no items are present.
-    await expect(page.locator('text=Your Shopping Cart is empty!')).toHaveCount(0);
-    // Also assert the cart contains at least one product row (fallback to simple count)
-    const rows = await page.locator('.cart tbody tr').count();
-    expect(rows).toBeGreaterThan(0);
-  } catch (err) {
-    const screenshot = await page.screenshot({ fullPage: true });
-    testInfo.attachments.push({ name: 'failure-screenshot', body: screenshot, contentType: 'image/png' });
-    throw err;
-  }
+test('full guest checkout on local demo', async ({ page }) => {
+  // Open storefront
+  await page.goto(`${DEMO_URL}/index.html`);
+  await expect(page).toHaveURL(new RegExp('localhost:3000/index.html'));
+  // Add product
+  const add = page.getByTestId('add-to-cart-1');
+  await expect(add).toBeVisible();
+  await add.click();
+  // Cart page
+  await expect(page).toHaveURL(new RegExp('/cart.html'));
+  await expect(page.getByRole('heading', { name: /shopping cart/i })).toBeVisible();
+  // Ensure cart has item
+  await expect(page.locator('.row')).toHaveCount(1);
+  // Checkout
+  await page.getByTestId('checkout-button').click();
+  await expect(page).toHaveURL(/checkout.html/);
+  // Fill guest billing info
+  await page.fill('[data-test-id="first-name"]', 'Test');
+  await page.fill('[data-test-id="last-name"]', 'User');
+  await page.fill('[data-test-id="email"]', `test.user+${Date.now()}@example.com`);
+  await page.fill('[data-test-id="address"]', '123 Test Ave');
+  await page.fill('[data-test-id="city"]', 'Testville');
+  await page.fill('[data-test-id="postal"]', '12345');
+  // Confirm
+  await page.getByTestId('confirm-order').click();
+  await expect(page).toHaveURL(/confirm.html/);
+  await expect(page.locator('h1')).toContainText(/thank you/i);
 });
