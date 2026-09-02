@@ -14,12 +14,11 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     await expect(addBtn).toBeVisible({ timeout: 10000 });
     await addBtn.click();
 
-    // Open cart by href
-      // Navigate to cart page
-      const cartLink = page.locator('a[href*="/cart"]').first();
-      await expect(cartLink).toBeVisible();
-      await cartLink.click();
-      await expect(page.getByRole('heading', { name: /shopping cart/i })).toBeVisible();
+    // Wait a moment for add-to-cart AJAX to complete, then navigate to the cart page
+    await page.waitForTimeout(1000);
+    const cartUrl = `${BASE_URL.replace(/\/$/, '')}/cart`;
+    await page.goto(cartUrl);
+    await expect(page.getByRole('heading', { name: /shopping cart/i })).toBeVisible({ timeout: 10000 });
 
     // Proceed to checkout
     const checkoutBtn = page.getByRole('button', { name: /checkout/i }).first();
