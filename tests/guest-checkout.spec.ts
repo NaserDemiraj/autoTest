@@ -15,11 +15,14 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     // Navigate directly to a known product page on Automation Test Store
     const productUrl = `${BASE_URL.replace(/\/$/, '')}/index.php?rt=product/product&product_id=50`;
     await page.goto(productUrl);
+    await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/product\/product/);
     // On product page, try several Add-to-Cart fallbacks
     const productAddLocators = [
       () => page.getByRole('link', { name: /add to cart/i }).first(),
       () => page.getByRole('button', { name: /add to cart/i }).first(),
+      () => page.locator('a:has-text("Add to Cart")').first(),
+      () => page.locator('text=/Add to Cart/i').first(),
       () => page.locator('button#button-cart'),
       () => page.locator('button[title*="Add to Cart"]'),
       () => page.locator('input#button-cart'),
