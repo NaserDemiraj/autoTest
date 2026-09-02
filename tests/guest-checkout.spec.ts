@@ -25,7 +25,7 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
         return els.slice(0,20);
       });
       console.log('DEBUG add-to-cart matches:', matches);
-      const productAdd = page.locator('button:has-text("Add to cart"), input[value="Add to cart"]').first();
+      const productAdd = page.locator('input[id^="add-to-cart-button"], button:has-text("Add to cart"), input[value="Add to cart"]').first();
       await expect(productAdd).toBeVisible({ timeout: 10000 });
       await productAdd.click();
       // debug snapshot after add
