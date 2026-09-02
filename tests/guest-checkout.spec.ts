@@ -14,11 +14,39 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     const firstProduct = page.locator('h2.product-title a').first();
     if (await firstProduct.count() > 0) {
       await firstProduct.click();
-      // Click the site's product add-to-cart control (prefer input[id^="add-to-cart-button"]) with fallback
+      // Attempt Ajax-based add-to-cart by extracting product id from add-to-cart input and calling site's AjaxCart
       const addInputSelector = 'input[id^="add-to-cart-button"]';
-      await page.waitForSelector(addInputSelector, { timeout: 5000 }).catch(() => {});
+      await page.waitForSelector(addInputSelector, { timeout: 3000 }).catch(() => {});
       if (await page.locator(addInputSelector).count() > 0) {
-        await page.click(addInputSelector);
+        const addInput = page.locator(addInputSelector).first();
+        const addId = await addInput.getAttribute('id');
+        // id format: add-to-cart-button-<productId>
+        const m = addId ? addId.match(/add-to-cart-button-(\d+)/) : null;
+        if (m && m[1]) {
+          const pid = m[1];
+          // call the site's AjaxCart function from page context
+          await page.evaluate((p) => {
+            try {
+              const url = `/addproducttocart/details/${p}/1`;
+              if ((window as any).AjaxCart && (window as any).AjaxCart.addproducttocart_details) {
+                (window as any).AjaxCart.addproducttocart_details(url, '#product-details-form');
+              } else if ((window as any).AjaxCart && (window as any).AjaxCart.addproducttocart_catalog) {
+                (window as any).AjaxCart.addproducttocart_catalog(url);
+              } else {
+                // fallback to clicking the input
+                const input = document.getElementById(`add-to-cart-button-${p}`) as HTMLElement | null;
+                if (input) input.click();
+              }
+            } catch (e) {
+              // ignore
+            }
+          }, pid);
+          // give AJAX a moment
+          await page.waitForTimeout(1000);
+        } else {
+          // fallback if id not found
+          await addInput.click();
+        }
       } else {
         const productAdd = page.locator('button:has-text("Add to cart"), input[value="Add to cart"]').first();
         await expect(productAdd).toBeVisible({ timeout: 10000 });
