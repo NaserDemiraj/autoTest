@@ -15,7 +15,6 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     // Navigate directly to a known product page on Automation Test Store
     const productUrl = `${BASE_URL.replace(/\/$/, '')}/index.php?rt=product/product&product_id=50`;
     await page.goto(productUrl);
-    await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/product\/product/);
     // On product page, try several Add-to-Cart fallbacks
     const productAddLocators = [
