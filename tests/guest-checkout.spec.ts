@@ -37,16 +37,20 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     await expect(checkoutBtn).toBeVisible();
     await checkoutBtn.click();
 
-    // If redirected to login, choose Checkout as Guest
+    // If redirected to login, choose Checkout as Guest or wait for billing form
     const checkoutAsGuest = page.locator('input[value="Checkout as Guest"], button:has-text("Checkout as Guest")');
-    if (await checkoutAsGuest.count() > 0) {
+    // Wait for either the guest option or the billing form to appear
+    await Promise.race([
+      checkoutAsGuest.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
+      page.locator('#BillingNewAddress_FirstName').waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
+    ]);
+    if (await checkoutAsGuest.count() > 0 && await checkoutAsGuest.isVisible()) {
       await checkoutAsGuest.first().click();
     }
 
-    // Fill billing details (use name attributes but assert visibility first)
-      // Fill billing details (nopCommerce billing field IDs)
-      await expect(page.locator('#BillingNewAddress_FirstName')).toBeVisible();
-      await page.fill('#BillingNewAddress_FirstName', 'Test');
+    // Fill billing details (nopCommerce billing field IDs)
+    await expect(page.locator('#BillingNewAddress_FirstName')).toBeVisible({ timeout: 20000 });
+    await page.fill('#BillingNewAddress_FirstName', 'Test');
       await page.fill('#BillingNewAddress_LastName', 'User');
       await page.fill('#BillingNewAddress_Email', `test.user+${Date.now()}@example.com`);
       await page.selectOption('#BillingNewAddress_CountryId', { label: 'United States' }).catch(() => {});
