@@ -1,145 +1,63 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'https://automationteststore.com/';
+const BASE_URL = process.env.BASE_URL || 'https://demowebshop.tricentis.com/';
 
-// Improved guest checkout flow using accessible selectors and stronger assertions.
+// Demowebshop guest checkout flow
 test('guest checkout full flow', async ({ page }, testInfo) => {
   // Helper: capture screenshot on failure
   testInfo.attachments = testInfo.attachments || [];
   try {
-    // Open storefront
+    // Open storefront and click the first available Add to cart button
     await page.goto(BASE_URL);
-    const baseHost = new URL(BASE_URL).hostname.replace('.', '\\.');
-    await expect(page).toHaveURL(new RegExp(baseHost));
-
-    // Navigate directly to a known product page on Automation Test Store
-    const productUrl = `${BASE_URL.replace(/\/$/, '')}/index.php?rt=product/product&product_id=50`;
-    await page.goto(productUrl);
-    await expect(page).toHaveURL(/product\/product/);
-    // Debug: log a.cart elements
-    console.log('DEBUG page.url:', page.url());
-    const cartEls = await page.evaluate(() => {
-      const els = Array.from(document.querySelectorAll('a.cart'));
-      return { count: els.length, outer: els.slice(0,5).map(e => e.outerHTML) };
-    });
-    console.log('DEBUG a.cart:', cartEls);
-    const bodySnippet = await page.evaluate(() => document.body && document.body.innerText && document.body.innerText.slice(0,300));
-    console.log('DEBUG body snippet:', bodySnippet);
-    // On product page, try several Add-to-Cart fallbacks
-    const productAddLocators = [
-      () => page.locator('a.cart').first(),
-      () => page.getByRole('link', { name: /add to cart/i }).first(),
-      () => page.getByRole('button', { name: /add to cart/i }).first(),
-      () => page.locator('a.cart:has-text("Add to Cart")').first(),
-      () => page.locator('a:has-text("Add to Cart")').first(),
-      () => page.locator('text=/Add to Cart/i').first(),
-      () => page.locator('button#button-cart'),
-      () => page.locator('button[title*="Add to Cart"]'),
-      () => page.locator('input#button-cart'),
-      () => page.getByRole('button', { name: /add/i }).first(),
-    ];
-
-    let added = false;
-    for (const getLoc of productAddLocators) {
-      const loc = getLoc();
-      if (await loc.count() > 0) {
-        try {
-          await expect(loc).toBeVisible({ timeout: 3000 });
-          await loc.click();
-          added = true;
-          break;
-        } catch {
-          // continue
-        }
-      }
-    }
-    if (!added) {
-      // Final fallback: run page script to find and click an element with matching text
-      const scriptClicked = await page.evaluate(() => {
-        const matcher = /add to cart/i;
-        const els = Array.from(document.querySelectorAll('a,button,input'));
-        for (const el of els) {
-          if (el.textContent && matcher.test(el.textContent)) {
-            (el as HTMLElement).click();
-            return true;
-          }
-          const title = (el.getAttribute && el.getAttribute('title')) || '';
-          if (title && matcher.test(title)) {
-            (el as HTMLElement).click();
-            return true;
-          }
-        }
-        return false;
-      });
-      if (!scriptClicked) {
-        const formSubmitted = await page.evaluate(() => {
-          const form = document.querySelector('form');
-          if (form) {
-            (form as HTMLFormElement).submit();
-            return true;
-          }
-          return false;
-        });
-        if (!formSubmitted) {
-          throw new Error('Could not add product to cart from product page with available fallbacks');
-        }
-      }
-    }
+    await expect(page).toHaveURL(new RegExp('demowebshop.tricentis.com'));
+    const addBtn = page.locator('text=Add to cart').first();
+    await expect(addBtn).toBeVisible({ timeout: 10000 });
+    await addBtn.click();
 
     // Open cart by href
-    const cartLink = page.locator('a[href*="checkout/cart"]').first();
-    await expect(cartLink).toBeVisible({ timeout: 5000 });
-    await cartLink.click();
-    await expect(page).toHaveURL(/checkout\/cart/);
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(/shopping cart/i);
+      // Navigate to cart page
+      const cartLink = page.locator('a[href*="/cart"]').first();
+      await expect(cartLink).toBeVisible();
+      await cartLink.click();
+      await expect(page.getByRole('heading', { name: /shopping cart/i })).toBeVisible();
 
     // Proceed to checkout
-    const checkoutLink = page.getByRole('link', { name: /checkout/i }).first();
-    await expect(checkoutLink).toBeVisible();
-    await checkoutLink.click();
-    await expect(page).toHaveURL(/route=checkout\/checkout/);
+    const checkoutBtn = page.getByRole('button', { name: /checkout/i }).first();
+    await expect(checkoutBtn).toBeVisible();
+    await checkoutBtn.click();
 
-    // Choose Guest Checkout option (fallback to name-based locator)
-    const guestRadio = page.locator('input[name="account"][value="guest"]');
-    await expect(guestRadio).toBeVisible();
-    await guestRadio.check();
-    await page.getByRole('button', { name: /continue/i }).nth(0).click();
+    // If redirected to login, choose Checkout as Guest
+    const checkoutAsGuest = page.locator('input[value="Checkout as Guest"], button:has-text("Checkout as Guest")');
+    if (await checkoutAsGuest.count() > 0) {
+      await checkoutAsGuest.first().click();
+    }
 
     // Fill billing details (use name attributes but assert visibility first)
-    await expect(page.locator('input[name="firstname"]')).toBeVisible();
-    await page.fill('input[name="firstname"]', 'Test');
-    await page.fill('input[name="lastname"]', 'User');
-    await page.fill('input[name="email"]', `test.user+${Date.now()}@example.com`);
-    await page.fill('input[name="telephone"]', '1234567890');
-    await page.fill('input[name="address_1"]', '123 Testing Ave');
-    await page.fill('input[name="city"]', 'Testville');
-    await page.fill('input[name="postcode"]', '12345');
-
-    // Prefer selecting by visible label/value if available
-    await page.selectOption('select[name="country_id"]', { label: 'United States' }).catch(() => {});
-    await page.selectOption('select[name="zone_id"]', { index: 1 }).catch(() => {});
+      // Fill billing details (nopCommerce billing field IDs)
+      await expect(page.locator('#BillingNewAddress_FirstName')).toBeVisible();
+      await page.fill('#BillingNewAddress_FirstName', 'Test');
+      await page.fill('#BillingNewAddress_LastName', 'User');
+      await page.fill('#BillingNewAddress_Email', `test.user+${Date.now()}@example.com`);
+      await page.selectOption('#BillingNewAddress_CountryId', { label: 'United States' }).catch(() => {});
+      await page.fill('#BillingNewAddress_City', 'Testville');
+      await page.fill('#BillingNewAddress_Address1', '123 Testing Ave');
+      await page.fill('#BillingNewAddress_ZipPostalCode', '12345');
+      await page.fill('#BillingNewAddress_PhoneNumber', '1234567890');
 
     // Continue from Billing
-    await page.getByRole('button', { name: /continue/i }).nth(1).click();
-    await page.waitForTimeout(500); // small pause for dynamic steps
+    await page.getByRole('button', { name: /continue/i }).nth(0).click();
 
-    // Delivery method continue
+    // Continue through shipping and payment steps
+    await page.getByRole('button', { name: /continue/i }).nth(1).click();
     await page.getByRole('button', { name: /continue/i }).nth(2).click();
 
-    // Agree to terms if present and continue to payment
-    const agree = page.locator('input[name="agree"]');
-    if (await agree.count() > 0) await agree.check();
-    await page.getByRole('button', { name: /continue/i }).nth(3).click();
-
     // Confirm order
-    const confirm = page.getByRole('button', { name: /confirm order/i }).first();
+    const confirm = page.getByRole('button', { name: /confirm/i }).first();
     await expect(confirm).toBeVisible({ timeout: 10000 });
     await confirm.click();
 
-    // Verify order confirmation (URL or heading)
-    await expect(page).toHaveURL(/route=checkout\/success/).catch(async () => {
-      await expect(page.getByRole('heading', { level: 1 })).toContainText(/your order has been placed|your order was placed/i);
-    });
+    // Verify order confirmation message
+    await expect(page.locator('h1')).toContainText(/thank you/i);
   } catch (err) {
     const screenshot = await page.screenshot({ fullPage: true });
     testInfo.attachments.push({ name: 'failure-screenshot', body: screenshot, contentType: 'image/png' });
