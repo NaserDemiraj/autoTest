@@ -14,12 +14,15 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     const firstProduct = page.locator('h2.product-title a').first();
     if (await firstProduct.count() > 0) {
       await firstProduct.click();
-      // Debug: list elements matching Add to cart
+      // Debug: list elements with add-to-cart related ids or attributes
       const matches = await page.evaluate(() => {
-        const els = Array.from(document.querySelectorAll('button, input, a'))
-          .filter(e => /add to cart/i.test(e.textContent || (e.getAttribute && e.getAttribute('value') || '')))
-          .map(e => ({ tag: e.tagName, outer: e.outerHTML.slice(0,300) }));
-        return els.slice(0,10);
+        const els = Array.from(document.querySelectorAll('[id], [class], [onclick], button, input'))
+          .filter(e => {
+            const attrs = (e.getAttribute && (e.getAttribute('id') || '') + ' ' + (e.getAttribute('class') || '') + ' ' + (e.getAttribute('onclick') || ''));
+            return /add[-_ ]?to[-_ ]?cart/i.test(attrs) || /add[-_ ]?to[-_ ]?cart/i.test(e.textContent || '');
+          })
+          .map(e => ({ tag: e.tagName, id: e.getAttribute && e.getAttribute('id'), class: e.getAttribute && e.getAttribute('class'), outer: (e.outerHTML || '').slice(0,300) }));
+        return els.slice(0,20);
       });
       console.log('DEBUG add-to-cart matches:', matches);
       const productAdd = page.locator('button:has-text("Add to cart"), input[value="Add to cart"]').first();
