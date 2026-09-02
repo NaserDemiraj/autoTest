@@ -9,7 +9,8 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
   try {
     // Open storefront
     await page.goto(BASE_URL);
-    await expect(page).toHaveURL(/demo.opencart.com/);
+    const baseHost = new URL(BASE_URL).hostname.replace('.', '\\.');
+    await expect(page).toHaveURL(new RegExp(baseHost));
 
     // Navigate to the first product page (more reliable across themes)
     const productLink = page.locator('a[href*="product_id="]').first();
