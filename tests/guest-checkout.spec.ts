@@ -11,31 +11,35 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     await page.goto(BASE_URL);
     await expect(page).toHaveURL(/demo.opencart.com/);
 
-    // Robust Add-to-Cart: try several fallbacks for different demo stores
-    const addToCartLocators = [
+    // Navigate to the first product page (more reliable across themes)
+    const productLink = page.locator('a[href*="product_id="]').first();
+    await expect(productLink).toBeVisible({ timeout: 10000 });
+    await productLink.click();
+    // On product page, try several Add-to-Cart fallbacks
+    const productAddLocators = [
       () => page.getByRole('button', { name: /add to cart/i }).first(),
-      () => page.locator('text="Add to cart"', { exact: false }).first(),
-      () => page.locator('.ajax_add_to_cart_button').first(),
-      () => page.locator('a:has-text("Add to cart")').first(),
+      () => page.locator('button#button-cart'),
+      () => page.locator('button[title*="Add to Cart"])'),
+      () => page.locator('input#button-cart'),
       () => page.getByRole('button', { name: /add/i }).first(),
     ];
 
-    let clicked = false;
-    for (const getLocator of addToCartLocators) {
-      const loc = getLocator();
+    let added = false;
+    for (const getLoc of productAddLocators) {
+      const loc = getLoc();
       if (await loc.count() > 0) {
         try {
           await expect(loc).toBeVisible({ timeout: 3000 });
           await loc.click();
-          clicked = true;
+          added = true;
           break;
         } catch {
-          // try next
+          // continue
         }
       }
     }
-    if (!clicked) {
-      throw new Error('Could not find or click Add to Cart button with any fallback locator');
+    if (!added) {
+      throw new Error('Could not add product to cart from product page with available fallbacks');
     }
 
     // Open cart (use link role)
