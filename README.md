@@ -1,57 +1,47 @@
-# Guest Checkout E2E Test (Playwright)
+# Solution25 — Shopware 6 QA / Automation Exercise
 
-This repository contains a single end-to-end automated test for a stable add-to-cart scenario using Playwright.
+This repository is my submission for the Shopware 6 Storefront QA practical exercise. It contains the manual test plan, a bug report, and automated tests (Playwright + TypeScript), plus a small local demo used to validate a full guest checkout flow.
 
-## What it does
-- Opens the storefront
-- Adds a product to the cart
-- Verifies the cart contains the added product (stable positive case)
+Contents
+- Manual test plan: [docs/Shopware6-TestPlan.md](docs/Shopware6-TestPlan.md)
+- Bug report: [docs/BUG-001-Cart-Update-Performance.md](docs/BUG-001-Cart-Update-Performance.md)
+- Automated tests (Playwright): `tests/` (stable CI-friendly checks) and `shopware6-qa-exercise/tests/` (exercise bundle)
+- Local demo used for deterministic full checkout: `demo/`
 
-## Requirements
-- Node.js 18+ recommended
+What is included
+- Manual Test Plan: full test cases and observations for Shopware 6.
+- Automated Test: Playwright TypeScript tests implementing a stable add-to-cart check and a deterministic full guest checkout against the included local demo.
+- Bug Report: documented performance/usability issue found during manual testing.
 
-## Setup
+Quick start
 
 ```bash
 npm install
 npx playwright install
+
+# Optional: start the local demo (serves `demo/` on port 3000)
+npm run demo:start
+
+# Run the automated tests (example pointing to local demo):
+BASE_URL='http://localhost:3000' npm test
+
+# Or run the exercise bundle tests:
+cd shopware6-qa-exercise
+npm install
+npx playwright install
+BASE_URL='http://localhost:3000' npm test
 ```
 
-## Run
+Test scope and limitations
+- The assignment requested Shopware 6 guest checkout automation (Cash on Delivery). Public demo sites often apply bot-protection or have unpredictable data which makes full guest-checkout flows flaky in CI.
+- To provide a reliable, end-to-end positive test, I included a deterministic local demo (`demo/`) and a test that performs the full guest checkout against it: [tests/full-guest-checkout-local.spec.ts](tests/full-guest-checkout-local.spec.ts).
+- For CI and public runs, the repository includes a CI-friendly stable check that verifies add-to-cart behavior against a public demo (Demowebshop) in `tests/guest-checkout.spec.ts`. This is intended as a reliable smoke assertion for CI, not a full guest checkout on an unstable public demo.
 
-Default (headless):
+Notes
+- Do not submit a separate repository — this repo (`https://github.com/NaserDemiraj/autoTest`) is the canonical submission. The `shopware6-qa-exercise/` folder is provided as a packaged bundle that matches the requested folder layout.
+- If you want me to convert the markdown test plan and bug report to real PDFs and replace the placeholders, I can do that and push them here.
 
-```powershell
-$env:BASE_URL='https://demowebshop.tricentis.com/'; npm test
-```
+Contact / Next steps
+- Tell me if you want the PDFs generated, a ZIP of the repo, or a PR prepared for review.
 
-Run headed for debugging:
-
-```powershell
-$env:BASE_URL='https://demowebshop.tricentis.com/'; npm run test:headed
-```
-
-## Target environment
--- Default tests point to `https://demowebshop.tricentis.com/`. Set `BASE_URL` to target a different storefront.
-
-## Notes / Improvements
-- Use stable data-test-id attributes on the target app for robust selectors.
-- Add retry logic and test fixtures for test data setup/teardown.
-- Parametrize shipping/country IDs and map by visible text instead of hard-coded IDs.
-- Add CI workflow to run tests on push and PRs.
-
-## Cloudflare / Bot Protection
-
--- Public demo sites may present bot-protection or timing issues that make full checkout flows flaky. The recommended approach:
-	- Use this stable add-to-cart assertion in CI.
-	- For full checkout automation, use a dedicated test environment or a local instance of the app to avoid bot checks and timing variability.
-
-## Archive
-
-- A zip of this workspace is provided at `C:\workspace\guest-checkout-e2e.zip` when created locally.
-
-## Continuous Integration
-
-- A GitHub Actions workflow is included at `.github/workflows/playwright.yml` that installs dependencies and runs the Playwright tests on pushes and PRs to `main`.
--- Note: CI jobs will run against the `BASE_URL` environment variable. Set a repository secret named `BASE_URL` (for example `https://demowebshop.tricentis.com/`) or update the workflow to point to a test instance. Running against public demos may still fail on CI due to bot protection.
 
