@@ -10,11 +10,21 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     // Navigate to books category and add the first book to cart
     await page.goto(`${BASE_URL.replace(/\/$/, '')}/books`);
     await expect(page).toHaveURL(/\/books/);
-    const addBtn = page.locator('text=Add to cart').first();
-    await expect(addBtn).toBeVisible({ timeout: 10000 });
-    await addBtn.click();
-    // Wait for the add-to-cart success notification
-    await page.waitForSelector('text=The product has been added to your shopping cart', { timeout: 5000 }).catch(() => {});
+    // Open first product detail and click its add-to-cart on the product page
+    const firstProduct = page.locator('h2.product-title a').first();
+    if (await firstProduct.count() > 0) {
+      await firstProduct.click();
+      const productAdd = page.locator('button:has-text("Add to cart"), input[value="Add to cart"]').first();
+      await expect(productAdd).toBeVisible({ timeout: 10000 });
+      await productAdd.click();
+    } else {
+      // Fallback: click first listing Add to cart
+      const addBtn = page.locator('text=Add to cart').first();
+      await expect(addBtn).toBeVisible({ timeout: 10000 });
+      await addBtn.click();
+    }
+    // Wait briefly for add-to-cart to process
+    await page.waitForTimeout(1000);
 
     // Wait a moment for add-to-cart AJAX to complete, then navigate to the cart page
     await page.waitForTimeout(1000);
