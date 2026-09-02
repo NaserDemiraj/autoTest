@@ -17,11 +17,14 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     await page.goto(productUrl);
     await expect(page).toHaveURL(/product\/product/);
     // Debug: log a.cart elements
+    console.log('DEBUG page.url:', page.url());
     const cartEls = await page.evaluate(() => {
       const els = Array.from(document.querySelectorAll('a.cart'));
       return { count: els.length, outer: els.slice(0,5).map(e => e.outerHTML) };
     });
     console.log('DEBUG a.cart:', cartEls);
+    const bodySnippet = await page.evaluate(() => document.body && document.body.innerText && document.body.innerText.slice(0,300));
+    console.log('DEBUG body snippet:', bodySnippet);
     // On product page, try several Add-to-Cart fallbacks
     const productAddLocators = [
       () => page.locator('a.cart').first(),
