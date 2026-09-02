@@ -1,0 +1,78 @@
+import { test, expect } from '@playwright/test';
+
+const BASE_URL = process.env.BASE_URL || 'https://demo.opencart.com/';
+
+// Improved guest checkout flow using accessible selectors and stronger assertions.
+test('guest checkout full flow', async ({ page }, testInfo) => {
+  // Helper: capture screenshot on failure
+  testInfo.attachments = testInfo.attachments || [];
+  try {
+    // Open storefront
+    await page.goto(BASE_URL);
+    await expect(page).toHaveURL(/demo.opencart.com/);
+
+    // Find an Add to Cart button via accessible role (more stable than text/CSS)
+    const addButton = page.getByRole('button', { name: /add to cart/i }).first();
+    await expect(addButton).toBeVisible({ timeout: 10000 });
+    await addButton.click();
+
+    // Open cart (use link role)
+    const cartLink = page.getByRole('link', { name: /shopping cart/i }).first();
+    await expect(cartLink).toBeVisible();
+    await cartLink.click();
+    await expect(page).toHaveURL(/route=checkout\/cart/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/shopping cart/i);
+
+    // Proceed to checkout
+    const checkoutLink = page.getByRole('link', { name: /checkout/i }).first();
+    await expect(checkoutLink).toBeVisible();
+    await checkoutLink.click();
+    await expect(page).toHaveURL(/route=checkout\/checkout/);
+
+    // Choose Guest Checkout option (fallback to name-based locator)
+    const guestRadio = page.locator('input[name="account"][value="guest"]');
+    await expect(guestRadio).toBeVisible();
+    await guestRadio.check();
+    await page.getByRole('button', { name: /continue/i }).nth(0).click();
+
+    // Fill billing details (use name attributes but assert visibility first)
+    await expect(page.locator('input[name="firstname"]')).toBeVisible();
+    await page.fill('input[name="firstname"]', 'Test');
+    await page.fill('input[name="lastname"]', 'User');
+    await page.fill('input[name="email"]', `test.user+${Date.now()}@example.com`);
+    await page.fill('input[name="telephone"]', '1234567890');
+    await page.fill('input[name="address_1"]', '123 Testing Ave');
+    await page.fill('input[name="city"]', 'Testville');
+    await page.fill('input[name="postcode"]', '12345');
+
+    // Prefer selecting by visible label/value if available
+    await page.selectOption('select[name="country_id"]', { label: 'United States' }).catch(() => {});
+    await page.selectOption('select[name="zone_id"]', { index: 1 }).catch(() => {});
+
+    // Continue from Billing
+    await page.getByRole('button', { name: /continue/i }).nth(1).click();
+    await page.waitForTimeout(500); // small pause for dynamic steps
+
+    // Delivery method continue
+    await page.getByRole('button', { name: /continue/i }).nth(2).click();
+
+    // Agree to terms if present and continue to payment
+    const agree = page.locator('input[name="agree"]');
+    if (await agree.count() > 0) await agree.check();
+    await page.getByRole('button', { name: /continue/i }).nth(3).click();
+
+    // Confirm order
+    const confirm = page.getByRole('button', { name: /confirm order/i }).first();
+    await expect(confirm).toBeVisible({ timeout: 10000 });
+    await confirm.click();
+
+    // Verify order confirmation (URL or heading)
+    await expect(page).toHaveURL(/route=checkout\/success/).catch(async () => {
+      await expect(page.getByRole('heading', { level: 1 })).toContainText(/your order has been placed|your order was placed/i);
+    });
+  } catch (err) {
+    const screenshot = await page.screenshot({ fullPage: true });
+    testInfo.attachments.push({ name: 'failure-screenshot', body: screenshot, contentType: 'image/png' });
+    throw err;
+  }
+});
