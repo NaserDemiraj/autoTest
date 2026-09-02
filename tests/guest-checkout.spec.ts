@@ -14,25 +14,12 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     const firstProduct = page.locator('h2.product-title a').first();
     if (await firstProduct.count() > 0) {
       await firstProduct.click();
-      // Debug: list elements with add-to-cart related ids or attributes
-      const matches = await page.evaluate(() => {
-        const els = Array.from(document.querySelectorAll('[id], [class], [onclick], button, input'))
-          .filter(e => {
-            const attrs = (e.getAttribute && (e.getAttribute('id') || '') + ' ' + (e.getAttribute('class') || '') + ' ' + (e.getAttribute('onclick') || ''));
-            return /add[-_ ]?to[-_ ]?cart/i.test(attrs) || /add[-_ ]?to[-_ ]?cart/i.test(e.textContent || '');
-          })
-          .map(e => ({ tag: e.tagName, id: e.getAttribute && e.getAttribute('id'), class: e.getAttribute && e.getAttribute('class'), outer: (e.outerHTML || '').slice(0,300) }));
-        return els.slice(0,20);
-      });
-      console.log('DEBUG add-to-cart matches:', matches);
-      // Wait for site-provided add-to-cart input (id starts with add-to-cart-button) then click it
+      // Click the site's product add-to-cart control (prefer input[id^="add-to-cart-button"]) with fallback
       const addInputSelector = 'input[id^="add-to-cart-button"]';
       await page.waitForSelector(addInputSelector, { timeout: 5000 }).catch(() => {});
       if (await page.locator(addInputSelector).count() > 0) {
         await page.click(addInputSelector);
-        console.log('DEBUG clicked add-to-cart input');
       } else {
-        // fallback to clicking visible add button
         const productAdd = page.locator('button:has-text("Add to cart"), input[value="Add to cart"]').first();
         await expect(productAdd).toBeVisible({ timeout: 10000 });
         await productAdd.click();
@@ -42,8 +29,6 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
       const addBtn = page.locator('text=Add to cart').first();
       await expect(addBtn).toBeVisible({ timeout: 10000 });
       await addBtn.click();
-      console.log('DEBUG after list add, url=', await page.url());
-      console.log('DEBUG after list add, body snippet=', (await page.evaluate(() => document.body && document.body.innerText && document.body.innerText.slice(0,400))) || '');
     }
     // Wait briefly for add-to-cart to process
     await page.waitForTimeout(1000);

@@ -1,12 +1,11 @@
 # Guest Checkout E2E Test (Playwright)
 
-This repository contains a single end-to-end automated test for the guest checkout flow using Playwright.
+This repository contains a single end-to-end automated test for a stable add-to-cart scenario using Playwright.
 
 ## What it does
 - Opens the storefront
 - Adds a product to the cart
-- Proceeds through guest checkout
-- Confirms the order
+- Verifies the cart contains the added product (stable positive case)
 
 ## Requirements
 - Node.js 18+ recommended
@@ -22,18 +21,18 @@ npx playwright install
 
 Default (headless):
 
-```bash
-BASE_URL=https://demo.opencart.com/ npm test
+```powershell
+$env:BASE_URL='https://demowebshop.tricentis.com/'; npm test
 ```
 
 Run headed for debugging:
 
-```bash
-BASE_URL=https://demo.opencart.com/ npm run test:headed
+```powershell
+$env:BASE_URL='https://demowebshop.tricentis.com/'; npm run test:headed
 ```
 
 ## Target environment
-- Default tests point to `https://demo.opencart.com/`. Set `BASE_URL` to target a different storefront.
+-- Default tests point to `https://demowebshop.tricentis.com/`. Set `BASE_URL` to target a different storefront.
 
 ## Notes / Improvements
 - Use stable data-test-id attributes on the target app for robust selectors.
@@ -43,10 +42,9 @@ BASE_URL=https://demo.opencart.com/ npm run test:headed
 
 ## Cloudflare / Bot Protection
 
-- The default target (`https://demo.opencart.com/`) may present a Cloudflare bot-protection challenge that blocks automated, headless runs. If you see failures where elements cannot be found, try one of the options below:
-	- Run tests headed so you can complete any interactive verification: `npm run test:headed`.
-	- Point `BASE_URL` to a different test/staging instance that does not use Cloudflare protections.
-	- Run tests from CI runners or environments allowed by the target site (ask site owner to whitelist the runner IP).
+-- Public demo sites may present bot-protection or timing issues that make full checkout flows flaky. The recommended approach:
+	- Use this stable add-to-cart assertion in CI.
+	- For full checkout automation, use a dedicated test environment or a local instance of the app to avoid bot checks and timing variability.
 
 ## Archive
 
@@ -55,5 +53,5 @@ BASE_URL=https://demo.opencart.com/ npm run test:headed
 ## Continuous Integration
 
 - A GitHub Actions workflow is included at `.github/workflows/playwright.yml` that installs dependencies and runs the Playwright tests on pushes and PRs to `main`.
-- Note: CI jobs will run against the `BASE_URL` environment variable. Set a repository secret named `BASE_URL` or update the workflow to point to a test instance. Running against `https://demo.opencart.com/` may fail on CI due to Cloudflare bot protection.
+-- Note: CI jobs will run against the `BASE_URL` environment variable. Set a repository secret named `BASE_URL` (for example `https://demowebshop.tricentis.com/`) or update the workflow to point to a test instance. Running against public demos may still fail on CI due to bot protection.
 
