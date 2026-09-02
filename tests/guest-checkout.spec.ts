@@ -18,8 +18,10 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     await expect(page).toHaveURL(/product\/product/);
     // On product page, try several Add-to-Cart fallbacks
     const productAddLocators = [
+      () => page.locator('a.cart').first(),
       () => page.getByRole('link', { name: /add to cart/i }).first(),
       () => page.getByRole('button', { name: /add to cart/i }).first(),
+      () => page.locator('a.cart:has-text("Add to Cart")').first(),
       () => page.locator('a:has-text("Add to Cart")').first(),
       () => page.locator('text=/Add to Cart/i').first(),
       () => page.locator('button#button-cart'),
