@@ -25,34 +25,18 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
         return els.slice(0,20);
       });
       console.log('DEBUG add-to-cart matches:', matches);
-      // Try invoking site's AjaxCart directly to add the product (more reliable than clicking)
-      const ajaxAdded = await page.evaluate(() => {
-        try {
-          // find an onclick that calls addproducttocart
-          const el = Array.from(document.querySelectorAll('[onclick]')).find(e => /addproducttocart/i.test(e.getAttribute('onclick') || ''));
-          if (!el) return false;
-          const onclick = el.getAttribute('onclick') || '';
-          // extract the url argument inside quotes
-          const m = onclick.match(/addproducttocart_[^\(]+\((?:'|")([^'\"]+)(?:'|")/i);
-          if (m && m[1]) {
-            const url = m[1];
-            if (typeof (window as any).AjaxCart !== 'undefined') {
-              if (/addproducttocart\/details/i.test(url)) {
-                (window as any).AjaxCart.addproducttocart_details(url, '#product-details-form');
-              } else {
-                (window as any).AjaxCart.addproducttocart_catalog(url);
-              }
-              return true;
-            }
-          }
-          // fallback: click the element directly
-          (el as HTMLElement).click();
-          return true;
-        } catch (e) {
-          return false;
-        }
-      });
-      console.log('DEBUG ajaxAdded=', ajaxAdded);
+      // Wait for site-provided add-to-cart input (id starts with add-to-cart-button) then click it
+      const addInputSelector = 'input[id^="add-to-cart-button"]';
+      await page.waitForSelector(addInputSelector, { timeout: 5000 }).catch(() => {});
+      if (await page.locator(addInputSelector).count() > 0) {
+        await page.click(addInputSelector);
+        console.log('DEBUG clicked add-to-cart input');
+      } else {
+        // fallback to clicking visible add button
+        const productAdd = page.locator('button:has-text("Add to cart"), input[value="Add to cart"]').first();
+        await expect(productAdd).toBeVisible({ timeout: 10000 });
+        await productAdd.click();
+      }
     } else {
       // Fallback: click first listing Add to cart
       const addBtn = page.locator('text=Add to cart').first();
