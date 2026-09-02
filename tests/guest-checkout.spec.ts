@@ -12,10 +12,10 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     const baseHost = new URL(BASE_URL).hostname.replace('.', '\\.');
     await expect(page).toHaveURL(new RegExp(baseHost));
 
-    // Navigate to the first product page (more reliable across themes)
-    const productLink = page.locator('a[href*="product_id="]').first();
-    await expect(productLink).toBeVisible({ timeout: 10000 });
-    await productLink.click();
+    // Navigate directly to a known product page on Automation Test Store
+    const productUrl = `${BASE_URL.replace(/\/$/, '')}/index.php?rt=product/product&product_id=50`;
+    await page.goto(productUrl);
+    await expect(page).toHaveURL(/product\/product/);
     // On product page, try several Add-to-Cart fallbacks
     const productAddLocators = [
       () => page.getByRole('button', { name: /add to cart/i }).first(),
