@@ -20,7 +20,7 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     const productAddLocators = [
       () => page.getByRole('button', { name: /add to cart/i }).first(),
       () => page.locator('button#button-cart'),
-      () => page.locator('button[title*="Add to Cart"])'),
+      () => page.locator('button[title*="Add to Cart"]'),
       () => page.locator('input#button-cart'),
       () => page.getByRole('button', { name: /add/i }).first(),
     ];
