@@ -29,6 +29,10 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests
-        env:
-          BASE_URL: ${{ secrets.BASE_URL || 'https://demo.opencart.com/' }}
-        run: npm test
+        run: |
+          if [ -z "${{ secrets.BASE_URL }}" ]; then
+            echo "BASE_URL=https://demowebshop.tricentis.com/" >> $GITHUB_ENV
+          else
+            echo "BASE_URL=${{ secrets.BASE_URL }}" >> $GITHUB_ENV
+          fi
+          npm test
