@@ -18,6 +18,7 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     await expect(page).toHaveURL(/product\/product/);
     // On product page, try several Add-to-Cart fallbacks
     const productAddLocators = [
+      () => page.getByRole('link', { name: /add to cart/i }).first(),
       () => page.getByRole('button', { name: /add to cart/i }).first(),
       () => page.locator('button#button-cart'),
       () => page.locator('button[title*="Add to Cart"]'),
@@ -43,11 +44,11 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
       throw new Error('Could not add product to cart from product page with available fallbacks');
     }
 
-    // Open cart (use link role)
-    const cartLink = page.getByRole('link', { name: /shopping cart/i }).first();
-    await expect(cartLink).toBeVisible();
+    // Open cart by href
+    const cartLink = page.locator('a[href*="checkout/cart"]').first();
+    await expect(cartLink).toBeVisible({ timeout: 5000 });
     await cartLink.click();
-    await expect(page).toHaveURL(/route=checkout\/cart/);
+    await expect(page).toHaveURL(/checkout\/cart/);
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/shopping cart/i);
 
     // Proceed to checkout
