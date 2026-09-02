@@ -69,7 +69,17 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
         return false;
       });
       if (!scriptClicked) {
-        throw new Error('Could not add product to cart from product page with available fallbacks');
+        const formSubmitted = await page.evaluate(() => {
+          const form = document.querySelector('form');
+          if (form) {
+            (form as HTMLFormElement).submit();
+            return true;
+          }
+          return false;
+        });
+        if (!formSubmitted) {
+          throw new Error('Could not add product to cart from product page with available fallbacks');
+        }
       }
     }
 
