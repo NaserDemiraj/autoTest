@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'https://demo.opencart.com/';
+const BASE_URL = process.env.BASE_URL || 'https://automationteststore.com/';
 
 // Improved guest checkout flow using accessible selectors and stronger assertions.
 test('guest checkout full flow', async ({ page }, testInfo) => {
@@ -11,10 +11,32 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     await page.goto(BASE_URL);
     await expect(page).toHaveURL(/demo.opencart.com/);
 
-    // Find an Add to Cart button via accessible role (more stable than text/CSS)
-    const addButton = page.getByRole('button', { name: /add to cart/i }).first();
-    await expect(addButton).toBeVisible({ timeout: 10000 });
-    await addButton.click();
+    // Robust Add-to-Cart: try several fallbacks for different demo stores
+    const addToCartLocators = [
+      () => page.getByRole('button', { name: /add to cart/i }).first(),
+      () => page.locator('text="Add to cart"', { exact: false }).first(),
+      () => page.locator('.ajax_add_to_cart_button').first(),
+      () => page.locator('a:has-text("Add to cart")').first(),
+      () => page.getByRole('button', { name: /add/i }).first(),
+    ];
+
+    let clicked = false;
+    for (const getLocator of addToCartLocators) {
+      const loc = getLocator();
+      if (await loc.count() > 0) {
+        try {
+          await expect(loc).toBeVisible({ timeout: 3000 });
+          await loc.click();
+          clicked = true;
+          break;
+        } catch {
+          // try next
+        }
+      }
+    }
+    if (!clicked) {
+      throw new Error('Could not find or click Add to Cart button with any fallback locator');
+    }
 
     // Open cart (use link role)
     const cartLink = page.getByRole('link', { name: /shopping cart/i }).first();
