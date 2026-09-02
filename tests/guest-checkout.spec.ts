@@ -16,6 +16,12 @@ test('guest checkout full flow', async ({ page }, testInfo) => {
     const productUrl = `${BASE_URL.replace(/\/$/, '')}/index.php?rt=product/product&product_id=50`;
     await page.goto(productUrl);
     await expect(page).toHaveURL(/product\/product/);
+    // Debug: log a.cart elements
+    const cartEls = await page.evaluate(() => {
+      const els = Array.from(document.querySelectorAll('a.cart'));
+      return { count: els.length, outer: els.slice(0,5).map(e => e.outerHTML) };
+    });
+    console.log('DEBUG a.cart:', cartEls);
     // On product page, try several Add-to-Cart fallbacks
     const productAddLocators = [
       () => page.locator('a.cart').first(),
