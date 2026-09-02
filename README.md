@@ -52,3 +52,8 @@ BASE_URL=https://demo.opencart.com/ npm run test:headed
 
 - A zip of this workspace is provided at `C:\workspace\guest-checkout-e2e.zip` when created locally.
 
+## Continuous Integration
+
+- A GitHub Actions workflow is included at `.github/workflows/playwright.yml` that installs dependencies and runs the Playwright tests on pushes and PRs to `main`.
+- Note: CI jobs will run against the `BASE_URL` environment variable. Set a repository secret named `BASE_URL` or update the workflow to point to a test instance. Running against `https://demo.opencart.com/` may fail on CI due to Cloudflare bot protection.
+
