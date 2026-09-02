@@ -10,6 +10,11 @@ export default defineConfig({
     navigationTimeout: 30_000,
     trace: 'on-first-retry',
   },
+  webServer: process.env.USE_LOCAL_DEMO === 'true' ? {
+    command: 'npm run demo:start',
+    port: 3000,
+    reuseExistingServer: true,
+  } : undefined,
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },
   ],
